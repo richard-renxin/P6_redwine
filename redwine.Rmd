@@ -1,0 +1,431 @@
+---
+title: "红酒数据集探索性数据分析"
+output: html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r}
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(Hmisc)
+library(knitr)
+library(reshape)
+library(scales)
+library(tidyr)
+library(memisc)
+```
+
+```{r}
+red_wine <- read.csv('wineQualityReds.txt')
+```
+# 单变量绘图选择
+
+
+### 数据可视化
+```{r}
+hist.data.frame(red_wine)
+```
+
+### 数据总览
+```{r}
+summary(red_wine)
+```
+
+## 固定酸
+```{r}
+ggplot(red_wine, aes(red_wine$fixed.acidity))+
+  geom_histogram()
+```
+
+## 挥发酸
+```{r}
+ggplot(red_wine, aes(red_wine$volatile.acidity))+
+  geom_histogram()
+```
+
+## 柠檬酸
+```{r}
+ggplot(red_wine, aes(red_wine$citric.acid))+
+  geom_histogram()
+```
+
+### 柠檬酸分布有些特殊
+
+## 残糖
+```{r}
+ggplot(red_wine, aes(red_wine$residual.sugar))+
+  geom_histogram()
+```
+
+### 甜度差别很大,但没有一款是甜酒.
+
+## 氯化物
+```{r}
+ggplot(red_wine, aes(red_wine$chlorides))+
+  geom_histogram()
+```
+
+### 氯化物差别很大
+
+## 游离二氧化硫
+```{r}
+ggplot(red_wine, aes(red_wine$free.sulfur.dioxide))+
+  geom_histogram()
+```
+
+## 总二氧化硫
+```{r}
+ggplot(red_wine, aes(red_wine$total.sulfur.dioxide))+
+  geom_histogram()
+```
+
+### 总二氧化硫浓度高于游离二氧化硫,符合常识.
+
+## 密度
+```{r}
+ggplot(red_wine, aes(red_wine$density))+
+  geom_histogram()
+```
+
+### 密度因素的分布非常接近于正态分布
+
+## PH值
+```{r}
+ggplot(red_wine, aes(red_wine$pH))+
+  geom_histogram()
+```
+
+### PH值也是非常接近正态分布
+
+## 硫化物
+```{r}
+ggplot(red_wine, aes(red_wine$sulphates))+
+  geom_histogram()
+```
+
+## 酒精
+```{r}
+ggplot(red_wine, aes(red_wine$alcohol))+
+  geom_histogram()
+```
+
+### 红酒属于低度酒
+
+## 质量
+```{r}
+ggplot(red_wine, aes(red_wine$quality))+
+  geom_histogram()
+```
+
+### 大多数红酒的质量为5~6分,符合市场规律.  
+
+
+# 单变量分析
+
+
+## 1你的数据集结构是?
+### 数据集中共有1599种红酒,具有11种化学成分,一个主观质量评分(3~8).      
+
+
+## 2你对数据集内感兴趣的特征?
+
+          
+### 探究影响红酒质量的因素和柠檬酸的特性.      
+
+
+## 3你认为数据集内哪些其他特征可以帮助你探索兴趣特点?
+### 与红酒质量相关的因素可能有酒精度,糖类,酸类,二氧化硫.
+### 与柠檬酸相关的因素可能有固定酸,挥发酸,pH值.      
+
+
+## 4在已经探究的特性中,是否存在任何异常分布?你是否对数据进行一些操作?
+### 通过简单绘图发现,多数直方图都是近似正态分布,并且左偏.       
+### 柠檬酸的直方图比较特殊,呈现双峰结构.      
+
+# 双变量绘图选择
+
+## 散点图矩阵
+```{r}
+ggpairs(red_wine,
+        lower = list(continuous = wrap("points", shape = I('.'))),
+        upper = list(combo = wrap("box", outlier.shape = I('.'))))
+```
+
+## 1影响质量的主要因素有:
+###挥发酸,柠檬酸,硫酸盐,酒精.   
+
+
+## 2高度相关的因素有:
+### 柠檬酸和固定酸,挥发酸    
+### 柠檬酸和PH值    
+### 总二氧化硫和游离二氧化硫     
+### 酒精和密度    
+### 酒精和质量    
+
+
+
+
+
+
+## 质量和挥发酸的相关关系:
+```{r}
+ggplot(red_wine, aes(factor(quality), volatile.acidity))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+                geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))
+```
+
+### 质量和挥发酸不是严格的线性相关, 除8级外呈负相关.
+
+## 质量和柠檬酸的相关关系:
+```{r}
+ggplot(red_wine, aes(factor(quality), citric.acid))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+                geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))
+```
+
+### 质量和柠檬酸呈正相关
+
+
+
+## 质量和硫化物的相关关系:
+```{r}
+ggplot(red_wine, aes(factor(quality), sulphates))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+               geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))
+```
+
+### 质量和硫化物呈正相关
+
+## 质量和酒精的相关关系:
+```{r}
+ggplot(red_wine, aes(factor(quality), alcohol))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+               geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))
+```
+
+### 质量和酒精不是线性相关,5级之后呈正相关
+
+## 质量和残糖的相关关系:
+```{r}
+ggplot(red_wine, aes(factor(quality), residual.sugar))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+               geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))
+```
+
+### 散点图矩阵中显示质量和残糖无关,发现确实如此.
+
+## 其他相关关系:
+
+## 柠檬酸和固定酸的相关关系:
+```{r}
+ggplot(red_wine, aes(citric.acid, fixed.acidity))+
+  geom_jitter()+
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+### 柠檬酸和固定酸呈正相关
+
+## 柠檬酸和挥发酸的相关关系:
+```{r}
+ggplot(red_wine, aes(citric.acid, volatile.acidity))+
+  geom_jitter()+
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+### 柠檬酸和挥发酸呈负相关
+
+## 柠檬酸和PH值的相关关系:
+```{r}
+ggplot(red_wine, aes(citric.acid, pH))+
+  geom_jitter()+
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+### 柠檬酸和PH值呈负相关
+
+## 总二氧化硫和游离二氧化硫的相关关系:
+```{r}
+ggplot(red_wine, aes(total.sulfur.dioxide, free.sulfur.dioxide))+
+  geom_jitter()+
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+### 总二氧化硫和游离二氧化硫呈正相关
+
+## 酒精和密度的相关关系:
+```{r}
+ggplot(red_wine, aes(alcohol, density))+
+  geom_jitter()+
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+### 酒精和密度呈负相关
+
+
+
+# 双变量分析
+
+## 探讨你在这部分探究中观察到的一些关系,这些感兴趣的特性与数据集内其他特性有什么区别?
+### 基于散点图矩阵,探究了影响质量的最重要的四个因素,根据相关程度依次为酒精,挥发酸,硫化物和柠檬酸.
+### 质量与柠檬酸呈正相关,与硫化物呈正相关.
+### 质量和挥发酸不是严格的线性相关, 除8级外呈负相关.
+### 质量和酒精不是线性相关,5级之后呈正相关
+
+## 你是否观察到主要特征与其它特征之间有趣的关系?
+### 柠檬酸和固定酸呈正相关
+### 柠檬酸和挥发酸呈负相关
+### 柠檬酸和PH值呈负相关
+### 总二氧化硫和游离二氧化硫呈正相关
+### 酒精和密度呈负相关
+
+## 你发现的最强关系是什么?
+
+```{r}
+cor.test(red_wine$fixed.acidity, red_wine$pH)
+```
+
+### 最强相关为固定酸和PH值,皮尔森相关系数约为-0.68.
+
+# 多变量绘图选择
+### 固定酸和挥发酸在不同质量下的相关关系:
+```{r}
+ggplot(red_wine, aes(fixed.acidity, volatile.acidity))+
+  geom_point(aes(color = quality))
+```
+
+### 高品质红酒多集中在挥发酸低的区域的区域.
+## 柠檬酸和酸类在不同质量下的相关关系:
+```{r}
+ggplot(red_wine, aes(fixed.acidity, volatile.acidity))+
+  geom_point(aes(color = citric.acid))+
+  facet_wrap(~quality)
+```
+
+### 高柠檬酸总出现在挥发酸少的区域,并倾向于出现在高固定酸区域.
+
+## 总二氧化硫,游离二氧化硫和硫化物在不同质量下的相关关系:
+```{r}
+ggplot(red_wine, aes(total.sulfur.dioxide, free.sulfur.dioxide))+
+  geom_point(aes(color = sulphates))+
+  facet_wrap(~quality)
+```
+
+### 总二氧化硫和游离二氧化硫正相关
+
+## 密度酒精和残糖在不同质量下的相关关系:
+```{r}
+ggplot(red_wine, aes(density, alcohol))+
+  geom_point(aes(color = residual.sugar))+
+  facet_wrap(~quality)
+```
+
+### 高质量酒出现在酒精度高区域,高残糖出现在高密度区域.
+
+## 酒精和密度在不同质量下的相关关系:
+```{r}
+ggplot(red_wine, aes(alcohol, density, color = factor(quality)))+
+  geom_point(alpha = 0.5,
+              size = 1,
+          position = 'jitter')+
+  geom_smooth(method = 'lm',
+                  se = FALSE,
+                size = 1)+
+  scale_color_brewer(palette = 'Blues')
+```
+
+### 不同质量的红酒,都是酒精和密度呈负相关.
+# 多变量分析
+
+## 探讨你在这部分探究中观察到的一些关系,通过观察感兴趣的特性,是否存在相互促进的特性?
+### 高品质红酒多集中在挥发酸低的区域的区域.
+### 高柠檬酸总出现在挥发酸少的区域,并倾向于出现在高固定酸区域.
+### 总二氧化硫和游离二氧化硫正相关,未发现和硫化物的关系.
+### 高质量酒出现在酒精度高区域,高残糖出现在高密度区域.
+### 不同质量的红酒,都是酒精和密度呈负相关.
+### 猜测柠檬酸和固定酸有促进作用,总二氧化硫和游离二氧化硫有促进作用.
+### 猜测高残糖和低酒精对高密度有促进作用.
+
+## 这些特性之间是否存在有趣或惊人的联系呢?
+### 残糖不会影响酒精度.
+### 没有挥发酸和固定酸同时特别高的红酒,也许二者可以单向转化.
+### 柠檬酸可能是固定酸的一种.
+### 总二氧化硫可能生成游离二氧化硫.
+### 密度也许由残糖和酒精决定.
+# 定稿图和总结
+
+## 绘图一:
+```{r}
+ggplot(red_wine, aes(factor(quality), alcohol))+
+  geom_jitter()+
+  geom_boxplot(alpha = 0.5, color = 'blue')+
+  stat_summary(fun.y = 'mean',
+               geom = 'point',
+               color = 'red')+
+  geom_smooth(method = 'lm', aes(group = 1))+
+  xlab('质量等级')+
+  ylab('酒精度 mg/L')+
+  ggtitle('质量和酒精的相关关系')
+```
+
+## 描述一:
+### 质量和酒精度呈正相关
+
+##绘图二:
+```{r}
+ggplot(red_wine, aes(fixed.acidity, volatile.acidity))+
+  geom_point(aes(color = citric.acid))+
+  facet_wrap(~quality)+
+  xlab('固定酸 mg/L')+
+  ylab('挥发酸 mg/L')+
+  ggtitle('固定酸,挥发酸和柠檬酸的相关关系')
+```
+
+## 描述二:
+### 高柠檬酸总出现在挥发酸少的区域,并倾向于出现在高固定酸区域.
+
+## 绘图三:
+```{r}
+ggplot(red_wine, aes(alcohol, density, color = factor(quality)))+
+  geom_point(alpha = 0.5,
+              size = 1,
+          position = 'jitter')+
+  geom_smooth(method = 'lm',
+                  se = FALSE,
+                size = 1)+
+  scale_color_brewer(palette = 'Blues')+
+  xlab('酒精度 mg/L')+
+  ylab('密度 mg/L')+
+  ggtitle('不同质量下密度和酒精的相关关系')
+```
+
+## 描述三:
+### 不同质量的红酒,都是酒精和密度呈负相关.
+
+# 反思:
+###分析过程中,特别依赖于散点图矩阵和相关系数.思路不够开阔.
